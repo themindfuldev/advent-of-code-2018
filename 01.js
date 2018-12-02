@@ -26,7 +26,7 @@ function readLines(file, onLine) {
 
     let frequency = 0;
     let didAFrequencyReachTwice = false;
-    const onLine = function (line, reader) {
+    const onLine = function (line) {
         if (!didAFrequencyReachTwice) {
             frequency += Number(line);
             if (frequencySet.has(frequency)) {
