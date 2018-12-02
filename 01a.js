@@ -1,9 +1,10 @@
-const fs = require("fs");
-const readline = require("readline");
+const fs = require('fs');
+const readline = require('readline');
 
 function readLines(file, onLine, onClose) {
     const reader = readline.createInterface({
-        input: fs.createReadStream(file)
+        input: fs.createReadStream(file),
+        crlfDelay: Infinity
     });
 
     const promise = new Promise(resolve => {
