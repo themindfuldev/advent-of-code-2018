@@ -55,8 +55,6 @@ const findNonOverlappingClaimID = claims => {
             return id;
         }
     }
-
-    return overlaps;
 };
 
 (async () => {
