@@ -1,7 +1,7 @@
 const { readFile } = require('./readLines');
 
 // Compares two strings to see if they differ by one char and which one 
-function compare(string1, string2) {
+const compare = (string1, string2) => {
     const length = string1.length;
     let differentChars = 0;
     let differIndex;
@@ -16,11 +16,11 @@ function compare(string1, string2) {
         differByOneChar: differentChars === 1,
         differIndex
     };
-}
+};
 
 // Compare each strings to every other string 
 // and get the common letters in case the differByOneChar is true
-function getCommonLetters(ids) {
+const getCommonLetters = ids => {
     const idsCount = ids.length;
     for (let i = 0; i < idsCount; i++) {
         const id = ids[i];
@@ -31,7 +31,7 @@ function getCommonLetters(ids) {
             }
         }
     }
-}
+};
 
 (async () => {
     const lines = await readFile('02-input.txt');
