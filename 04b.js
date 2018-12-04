@@ -107,14 +107,52 @@ const findMostAsleepMinute = guard => {
     return minutesCount.indexOf(mostAsleepMinuteCount);
 };
 
+const findMostFrequentlySleptMinute = guards => {
+    const minutesMostSlept = [];
+    for (let i = 0; i < 60; i++) {
+        const guardsWhichSleptThisMinute = new Map();
+        for (let guard of guards.values()) {
+            let minutesThisGuardSlept = 0;
+            for (let schedule of guard.schedules) {
+                minutesThisGuardSlept += +(schedule.minutesSlept.indexOf(i) > -1);
+            }
+            guardsWhichSleptThisMinute.set(guard.id, minutesThisGuardSlept);
+        }
+
+        let zonkedGuardId;
+        let maxMinutesSlept = 0;
+        for (let [guardId, minutes] of guardsWhichSleptThisMinute.entries()) {
+            if (minutes > maxMinutesSlept) {
+                maxMinutesSlept = minutes;
+                zonkedGuardId = guardId;
+            }
+        }
+
+        minutesMostSlept[i] = { zonkedGuardId, maxMinutesSlept };
+    }
+
+    let zonkedGuardIdTotal;
+    let maxMinutesSleptTotal = 0;
+    let minuteMostSleptTotal = -1;
+    for (let i = 0; i < 60; i++) {
+        const { zonkedGuardId, maxMinutesSlept } = minutesMostSlept[i];
+        if (maxMinutesSlept > maxMinutesSleptTotal) {
+            maxMinutesSleptTotal = maxMinutesSlept;
+            zonkedGuardIdTotal = zonkedGuardId;
+            minuteMostSleptTotal = i;
+        }
+    }
+    
+    return { zonkedGuardIdTotal, minuteMostSleptTotal }
+}
+
 (async () => {
     const lines = await readFile('04-input.txt');
     lines.sort();
 
     const guards = buildGuards(lines);
-    const zonkedGuard = findZonkedGuard(guards);
-    const mostAsleepMinute = findMostAsleepMinute(zonkedGuard);
+    const { zonkedGuardIdTotal, minuteMostSleptTotal } = findMostFrequentlySleptMinute(guards);
     
-    const solution = +zonkedGuard.id * mostAsleepMinute;
+    const solution = +zonkedGuardIdTotal * minuteMostSleptTotal;
     console.log(`The ID of the guard multiplied by the minute is ${solution}`);
 })();
