@@ -8,7 +8,13 @@ const compare = (string1, string2) => {
     for (let i = 0; i < length; i++) {
         if (string1.charAt(i) !== string2.charAt(i)) {
             differentChars++;            
-            differIndex = differentChars === 1 ? i : undefined;
+            if (differentChars === 1) {
+                differIndex = i;
+            }
+            else {
+                differIndex = undefined;
+                break;
+            }
         }
     }
 
