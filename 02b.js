@@ -1,4 +1,4 @@
-const { readFile } = require('./readLines');
+const { readFile } = require('./reader');
 
 // Compares two strings to see if they differ by one char and which one 
 const compare = (string1, string2) => {

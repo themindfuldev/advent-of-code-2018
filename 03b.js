@@ -1,4 +1,4 @@
-const { readFile } = require('./readLines');
+const { readFile } = require('./reader');
 
 const buildClaims = lines => {
     const claims = new Map();

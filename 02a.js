@@ -1,4 +1,4 @@
-const { readFile } = require('./readLines');
+const { readFile } = require('./reader');
 
 (async () => {
     const lines = await readFile('02-input.txt');
