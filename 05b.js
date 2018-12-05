@@ -25,5 +25,5 @@ const detectUnitTypes = polymer => {
 
     const shortestPolymerLength = Math.min(...polymersWithoutUnit.values());
 
-    console.log(`The remaining units are ${shortestPolymerLength}`);
+    console.log(`The shortest polymer length is ${shortestPolymerLength}`);
 })();
