@@ -1,9 +1,5 @@
 const { readFile } = require('./reader');
-const {
-    Node,
-    buildNode,
-    buildTree
-} = require('./08-common');
+const { buildTree } = require('./08-common');
 
 const getNodeValue = node => {
     let value = 0;
