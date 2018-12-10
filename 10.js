@@ -61,16 +61,14 @@ const getEdges = points => {
 
     return {
         minX,
-        maxX,
         minY,
-        maxY,
         lengthX: maxX - minX + 1,
         lengthY: maxY - minY + 1
     };
 };
 
 const printPoints = points => {
-    const { minX, maxX, minY, maxY, lengthX, lengthY } = getEdges(points);
+    const { minX, minY, lengthX, lengthY } = getEdges(points);
 
     const grid = Array.from({length: lengthY}, row => Array.from({length: lengthX}, col => '.'));
 
