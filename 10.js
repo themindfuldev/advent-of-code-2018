@@ -15,6 +15,35 @@ const parseInput = lines => {
     });
 };
 
+const printPointsUntilMinimum = points => {
+    const viewSize = 100;
+
+    let { lengthY } = getEdges(points);
+    let minimumY = lengthY;
+    let hasReachedMinimum = false;
+    let secondsForMessage = 0;
+
+    while (!hasReachedMinimum) {
+        if (lengthY < viewSize) {
+            console.log(`${lengthY} lines`);
+            printPoints(points);
+        }
+
+        tick(points);   
+        secondsForMessage++;     
+
+        lengthY = getEdges(points).lengthY;
+        if (lengthY < minimumY) {
+            minimumY = lengthY;            
+        }
+        else {
+            hasReachedMinimum = true;
+        }
+    }
+
+    console.log(`The elves had to wait ${secondsForMessage-1} seconds`);
+}
+
 const tick = (points, seconds = 1) => {
     for (let point of points) {
         point.posX += point.velX * seconds;
@@ -62,26 +91,5 @@ const printPoints = points => {
 
     const points = parseInput(lines);
 
-    const viewSize = 100;
-    let isWithinViewSize = false;
-    let lengthY;
-    while (!isWithinViewSize) {
-        tick(points);
-        lengthY = getEdges(points).lengthY;
-        if (lengthY <= viewSize) {
-            isWithinViewSize = true;
-        }
-    }
-
-    while (isWithinViewSize) {
-        console.log(`${lengthY} lines`);
-        printPoints(points);
-
-        tick(points);
-        lengthY = getEdges(points).lengthY;
-        if (lengthY > viewSize) {
-            isWithinViewSize = false;
-        }
-    }
-    
+    printPointsUntilMinimum(points);    
 })();
