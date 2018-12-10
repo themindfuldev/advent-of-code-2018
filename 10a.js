@@ -1,4 +1,5 @@
 const { readFile } = require('./reader');
+const fs = require('fs');
 
 const regex = /^position=<\s?(?<posX>-?\d+), \s?(?<posY>-?\d+)> velocity=<\s?(?<velX>-?\d+), \s?(?<velY>-?\d+)>$/;
 
@@ -25,18 +26,23 @@ const getEdges = points => {
     const posX = points.map(p => p.posX);
     const posY = points.map(p => p.posY);
 
+    const minX = Math.min(...posX);
+    const maxX = Math.max(...posX);
+    const minY = Math.min(...posY);
+    const maxY = Math.max(...posY);
+
     return {
-        minX: Math.min(...posX),
-        maxX: Math.max(...posX),
-        minY: Math.min(...posY),
-        maxY: Math.max(...posY)
+        minX,
+        maxX,
+        minY,
+        maxY,
+        lengthX: maxX - minX + 1,
+        lengthY: maxY - minY + 1
     };
 };
 
 const printPoints = points => {
-    const { minX, maxX, minY, maxY } = getEdges(points);
-    const lengthX = maxX - minX + 1;
-    const lengthY = maxY - minY + 1;
+    const { minX, maxX, minY, maxY, lengthX, lengthY } = getEdges(points);
 
     const grid = Array.from({length: lengthY}, row => Array.from({length: lengthX}, col => '.'));
 
@@ -56,8 +62,26 @@ const printPoints = points => {
 
     const points = parseInput(lines);
 
-    //for (let i=1; i<2; i++) {
+    const viewSize = 100;
+    let isWithinViewSize = false;
+    let lengthY;
+    while (!isWithinViewSize) {
         tick(points);
+        lengthY = getEdges(points).lengthY;
+        if (lengthY <= viewSize) {
+            isWithinViewSize = true;
+        }
+    }
+
+    while (isWithinViewSize) {
+        console.log(`${lengthY} lines`);
         printPoints(points);
-    //}
+
+        tick(points);
+        lengthY = getEdges(points).lengthY;
+        if (lengthY > viewSize) {
+            isWithinViewSize = false;
+        }
+    }
+    
 })();
