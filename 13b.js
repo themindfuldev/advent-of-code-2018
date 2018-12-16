@@ -11,7 +11,7 @@ const getRemainingCart = carts => {
             const sA = a.square;
             const sB = b.square;
             return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
-          });
+        });
         for (let cart of carts) {
             if (!cart.crashed) {
                 cart.move();
