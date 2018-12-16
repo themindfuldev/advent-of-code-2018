@@ -5,7 +5,13 @@ const {
 } = require('./13-common');
 
 const getRemainingCart = carts => {
+    let tick = 0;
     while (carts.length > 1) {
+        carts.sort((a, b) => {
+            const sA = a.square;
+            const sB = b.square;
+            return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
+          });
         for (let cart of carts) {
             if (!cart.crashed) {
                 cart.move();
@@ -15,9 +21,10 @@ const getRemainingCart = carts => {
             }
         }
         carts = carts.filter(cart => !cart.crashed);
+        tick++
     };
 
-    return carts.find(cart => !cart.crashed);
+    return carts[0];
 };
 
 (async () => {
@@ -26,5 +33,5 @@ const getRemainingCart = carts => {
     const { squares, carts } = buildPath(map);
     const cart = getRemainingCart(carts);
 
-    console.log(`The location of the last cart is ${cart.square.y},${cart.square.x}`);
+    console.log(`The location of the last cart ${cart.id} is ${cart.square.y},${cart.square.x}`);
 })();

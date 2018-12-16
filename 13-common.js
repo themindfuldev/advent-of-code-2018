@@ -53,7 +53,6 @@ class Square {
 
     setCart(cart) {
         if (this.cart) {
-            this.crash = true;
             this.cart.crashed = true;
             cart.crashed = true;
         }
@@ -65,9 +64,11 @@ class Square {
     }
 }
 
+let cartId = 0;
 class Cart {
     constructor() {
         this.nextTurnIndex = -1;        
+        this.id = cartId++;
     }
 
     getNextTurn() {
@@ -125,10 +126,14 @@ class Cart {
         else if (this.square.type === MAP.CORNER_NE_SW) {
             if ([DIRECTIONS.NORTH, DIRECTIONS.SOUTH].includes(this.direction)) { 
                 this.direction = DIRECTIONS_TO_LEFT[this.direction];
-                this.moveHorizontal();
             }
             else if ([DIRECTIONS.WEST, DIRECTIONS.EAST].includes(this.direction)) {
-                this.direction = DIRECTIONS_TO_RIGHT[this.direction];
+                this.direction = DIRECTIONS_TO_RIGHT[this.direction];                
+            }
+            if ([DIRECTIONS.WEST, DIRECTIONS.EAST].includes(this.direction)) {
+                this.moveHorizontal();
+            }
+            else if ([DIRECTIONS.NORTH, DIRECTIONS.SOUTH].includes(this.direction)) { 
                 this.moveVertical();
             }
         }
@@ -197,8 +202,10 @@ const buildPath = map => {
                     square.top = previousVertical;
                 }
                 else if (square.type === MAP.CORNER_NW_SE) {
-                    if (previousHorizontal && previousHorizontal.type !== MAP.VERTICAL 
-                        && previousVertical && previousVertical.type !== MAP.HORIZONTAL) { // SE
+                    if (previousHorizontal && 
+                        [MAP.HORIZONTAL, MAP.INTERSECTION, MAP.CORNER_NE_SW].includes(previousHorizontal.type) &&
+                        previousVertical && 
+                        [MAP.VERTICAL, MAP.INTERSECTION, MAP.CORNER_NE_SW].includes(previousVertical.type)) { // SE
                         previousHorizontal.right = square;
                         square.left = previousHorizontal;
 
@@ -207,11 +214,13 @@ const buildPath = map => {
                     }
                 }
                 else if (square.type === MAP.CORNER_NE_SW) {
-                    if (previousHorizontal && previousHorizontal.type !== MAP.VERTICAL) { // NE
+                    if (previousHorizontal && 
+                        [MAP.HORIZONTAL, MAP.INTERSECTION, MAP.CORNER_NW_SE].includes(previousHorizontal.type)) { // NE
                         previousHorizontal.right = square;
                         square.left = previousHorizontal;
                     }
-                    else if (previousVertical && previousVertical.type !== MAP.HORIZONTAL) { // SW
+                    else if (previousVertical && 
+                        [MAP.VERTICAL, MAP.INTERSECTION, MAP.CORNER_NW_SE].includes(previousVertical.type)) { // SW
                         previousVertical.bottom = square;
                         square.top = previousVertical;
                     }
