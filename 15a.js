@@ -23,9 +23,13 @@ class Square {
         this.type = type;
         
         if ([MAP.GOBLIN, MAP.ELF].includes(type)) {
-            this.enemyOf = ENEMIES[type];
-            this.hp = MAX_HP;
-            this.id = generator++;
+            this.unit = {
+                id: generator++,
+                type,
+                square: this,
+                enemyOf: ENEMIES[type],
+                hp: MAX_HP
+            }
         }
     }
 }
@@ -40,8 +44,8 @@ const readDungeon = lines => {
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < m; j++) {
             const square = dungeon[i][j] = new Square({x: i, y: j, type: lines[i][j]});
-            if ([MAP.GOBLIN, MAP.ELF].includes(square.type)) {
-                units.push(square);
+            if (square.unit) {
+                units.push(square.unit);
             }
         }
     }
@@ -49,11 +53,11 @@ const readDungeon = lines => {
     return { dungeon, units };
 };
 
-const getAdjacents = (dungeon, unit) => {
+const getAdjacents = (dungeon, square) => {
     const n = dungeon.length;
     const m = dungeon[0].length;
 
-    const { x, y } = unit;
+    const { x, y } = square;
     const adjacents = [];
     if (x > 0) adjacents.push(dungeon[x-1][y]);
     if (y > 0) adjacents.push(dungeon[x][y-1]);
@@ -63,60 +67,61 @@ const getAdjacents = (dungeon, unit) => {
     return adjacents;
 }
 
+const getKey = ({ x, y }) => `${x},${y}`;
+
 const getMinimumPath = (target, unit, dungeon) => {
     const visitedSquares = new Set();
-    const path = [];
-    const { x, y } = unit;
+    const path = [target];
+    const { x, y } = unit.square;
+    const unitAdjacents = getAdjacents(dungeon, unit.square).filter(adjacent => adjacent.type === MAP.CAVERN);
+    
     let i = target.x;
     let j = target.y;
-
-    const getKey = ({x, y}) => `${x},${y}`;
-
-    while (i !== x && j !== y) {
-        const adjacents = getAdjacents(dungeon, target);
+    while (!unitAdjacents.includes(target)) {
+        const targetAdjacents = getAdjacents(dungeon, target);
 
         const availablePositions = 
-            adjacents
+            targetAdjacents
                 .filter(adjacent => adjacent.type === MAP.CAVERN && !visitedSquares.has(getKey(adjacent)))
                 .map(getKey);
         const availables = new Set(availablePositions);
-
         const isAvailable = (x, y) => availables.has(getKey({x, y}));
         
-        if (j < y && isAvailable(i, j+1)) j++;
-        else if (j > y && isAvailable(i, j-1)) j--;
-        else if (i < x && isAvailable(i+1, j)) i++;
+        let hasMoved = true;
+        if (i < x && isAvailable(i+1, j)) i++;
         else if (i > x && isAvailable(i-1, j)) i--;
+        else if (j < y && isAvailable(i, j+1)) j++;
+        else if (j > y && isAvailable(i, j-1)) j--;
+        else hasMoved = false;
+        
+        if (hasMoved) {
+            target = dungeon[i][j];
+            path.push(target);
+            visitedSquares.add(getKey(target));
+        }
         else {
             target = path.pop();
-
             if (!target) return [];
         }
-        
-        target = dungeon[i][j];
-        path.push(target);
-        visitedSquares.add(getKey(target));
     }
 
     return path;
 };
 
 const step = (unit, nearest) => {
-    nearest.square.type = unit.type;
-    nearest.square.enemyOf = unit.enemyOf;
-    nearest.square.hp = unit.hp;
-    nearest.square.id = unit.id;
+    const oldSquare = unit.square;
+    oldSquare.unit = undefined;
+    oldSquare.type = MAP.CAVERN;
 
-    unit.type = MAP.CAVERN;
-    delete unit.enemyOf;
-    delete unit.hp;
-    delete unit.id;
+    nearest.unit = unit;
+    nearest.type = unit.type;
+    unit.square = nearest;
 };
 
 const move = (unit, units, enemies, openCaverns, dungeon) => {  
     const nearests = [];  
     for (let enemy of enemies) {
-        const adjacents = getAdjacents(dungeon, enemy).filter(square => square.type === MAP.CAVERN);
+        const adjacents = getAdjacents(dungeon, enemy.square).filter(square => square.type === MAP.CAVERN);
         const reachables = adjacents
             .map(adjacent => {
                 const path = getMinimumPath(adjacent, unit, dungeon);
@@ -137,10 +142,10 @@ const move = (unit, units, enemies, openCaverns, dungeon) => {
     }
 
     if (nearests.length > 0) {
-        const nearest = nearests.reduce((nearest, adjacent) => nearest.distance < adjacent.distance ? nearest : adjacent);
-        const i = units.indexOf(unit);
-        step(unit, nearest);
-        units.splice(i, 1, nearest.square);
+        const nearest = nearests.reduce((nearest, adjacent) => nearest.distance <= adjacent.distance ? nearest : adjacent);
+        const nextStep = nearest.path[nearest.path.length-1];
+
+        step(unit, nextStep);
     }
 }
 
@@ -164,14 +169,20 @@ const makeRound = (dungeon, units) => {
     const m = dungeon[0].length;
 
     // Sorting for the round
-    units.sort((a, b) => (a.x === b.x) ? a.y - b.y : a.x - b.x);
+    units.sort((a, b) => {
+        const sA = a.square;
+        const sB = b.square;
+        return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
+    });
 
     for (let unit of units) {
         // Determine action
         const { type, enemyOf } = unit;        
 
-        const adjacents = getAdjacents(dungeon, unit);
-        const enemiesInRange = adjacents.filter(square => square.type === enemyOf);
+        const adjacents = getAdjacents(dungeon, unit.square);
+        const enemiesInRange = adjacents
+            .filter(square => square.type === enemyOf)
+            .map(square => square.unit);
 
         if (enemiesInRange.length > 0) {
             const casualty = attack(unit, enemiesInRange);
