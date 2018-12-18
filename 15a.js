@@ -113,7 +113,7 @@ const step = (unit, nearest) => {
     delete unit.id;
 };
 
-const move = (unit, enemies, openCaverns, dungeon) => {  
+const move = (unit, units, enemies, openCaverns, dungeon) => {  
     const nearests = [];  
     for (let enemy of enemies) {
         const adjacents = getAdjacents(dungeon, enemy).filter(square => square.type === MAP.CAVERN);
@@ -138,7 +138,9 @@ const move = (unit, enemies, openCaverns, dungeon) => {
 
     if (nearests.length > 0) {
         const nearest = nearests.reduce((nearest, adjacent) => nearest.distance < adjacent.distance ? nearest : adjacent);
+        const i = units.indexOf(unit);
         step(unit, nearest);
+        units.splice(i, 1, nearest.square);
     }
 }
 
@@ -182,7 +184,7 @@ const makeRound = (dungeon, units) => {
             const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
             const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type);
             if (openCaverns.length > 0 && enemies.length > 0) {
-                move(unit, enemies, openCaverns, dungeon);
+                move(unit, units, enemies, openCaverns, dungeon);
             }
         }
 
@@ -193,6 +195,20 @@ const makeRound = (dungeon, units) => {
     const lines = await readFile('test.txt');
 
     const { dungeon, units } = readDungeon(lines);
-    makeRound(dungeon, units);
-    console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
+
+    let goblins, elves;
+    let rounds = 0;
+    do {
+        makeRound(dungeon, units);
+        rounds++;
+        goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
+        elves = units.filter(unit => unit.type === MAP.ELF).length;
+        console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
+        console.log(units.map(u => `${u.id}: ${u.hp}`));
+    } while (goblins > 0 && elves > 0);
+
+    const remainingHp = units.reduce((total, unit) => total += unit.hp, 0);
+    const outcome = rounds * remainingHp;
+
+    console.log(`The outcome of the combat is ${outcome}`);
 })();
