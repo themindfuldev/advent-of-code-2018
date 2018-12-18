@@ -88,10 +88,10 @@ const getMinimumPath = (target, unit, dungeon) => {
         const isAvailable = (x, y) => availables.has(getKey({x, y}));
         
         let hasMoved = true;
-        if (i < x && isAvailable(i+1, j)) i++;
-        else if (i > x && isAvailable(i-1, j)) i--;
-        else if (j < y && isAvailable(i, j+1)) j++;
+        if (i > x && isAvailable(i-1, j)) i--;
         else if (j > y && isAvailable(i, j-1)) j--;
+        else if (j < y && isAvailable(i, j+1)) j++;
+        else if (i < x && isAvailable(i+1, j)) i++;
         else hasMoved = false;
         
         if (hasMoved) {
@@ -134,8 +134,7 @@ const move = (unit, units, enemies, openCaverns, dungeon) => {
             .filter(adjacent => adjacent.distance > 0);
 
         if (reachables.length > 0) {
-            const nearest = reachables
-                .reduce((nearest, adjacent) => nearest.distance < adjacent.distance ? nearest : adjacent);
+            const nearest = reachables.reduce((nearest, adjacent) => nearest.distance <= adjacent.distance ? nearest : adjacent);
 
             nearests.push(nearest);
         }
@@ -209,14 +208,14 @@ const makeRound = (dungeon, units) => {
 
     let goblins, elves;
     let rounds = 0;
-    do {
+    //do {
         makeRound(dungeon, units);
         rounds++;
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
         elves = units.filter(unit => unit.type === MAP.ELF).length;
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
         console.log(units.map(u => `${u.id}: ${u.hp}`));
-    } while (goblins > 0 && elves > 0);
+    //} while (goblins > 0 && elves > 0);
 
     const remainingHp = units.reduce((total, unit) => total += unit.hp, 0);
     const outcome = rounds * remainingHp;
