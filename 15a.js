@@ -1,0 +1,198 @@
+const { readFile } = require('./reader');
+
+const MAP = {
+    WALL: '#',
+    CAVERN: '.',
+    GOBLIN: 'G',
+    ELF: 'E'
+};
+
+const ENEMIES = {
+    [MAP.GOBLIN]: MAP.ELF,
+    [MAP.ELF]: MAP.GOBLIN
+}
+
+const MAX_HP = 200;
+const AP = 3;
+
+let generator = 0;
+class Square {
+    constructor({x, y, type}) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        
+        if ([MAP.GOBLIN, MAP.ELF].includes(type)) {
+            this.enemyOf = ENEMIES[type];
+            this.hp = MAX_HP;
+            this.id = generator++;
+        }
+    }
+}
+
+const readDungeon = lines => {
+    const n = lines.length;
+    const m = lines[0].length;
+
+    const dungeon = Array.from({ length: n }, row => Array.from({ length: m }));
+    
+    const units = [];
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < m; j++) {
+            const square = dungeon[i][j] = new Square({x: i, y: j, type: lines[i][j]});
+            if ([MAP.GOBLIN, MAP.ELF].includes(square.type)) {
+                units.push(square);
+            }
+        }
+    }
+
+    return { dungeon, units };
+};
+
+const getAdjacents = (dungeon, unit) => {
+    const n = dungeon.length;
+    const m = dungeon[0].length;
+
+    const { x, y } = unit;
+    const adjacents = [];
+    if (x > 0) adjacents.push(dungeon[x-1][y]);
+    if (y > 0) adjacents.push(dungeon[x][y-1]);
+    if (y < m - 1) adjacents.push(dungeon[x][y+1]);
+    if (x < n - 1) adjacents.push(dungeon[x+1][y]);
+
+    return adjacents;
+}
+
+const getMinimumPath = (target, unit, dungeon) => {
+    const visitedSquares = new Set();
+    const path = [];
+    const { x, y } = unit;
+    let i = target.x;
+    let j = target.y;
+
+    const getKey = ({x, y}) => `${x},${y}`;
+
+    while (i !== x && j !== y) {
+        const adjacents = getAdjacents(dungeon, target);
+
+        const availablePositions = 
+            adjacents
+                .filter(adjacent => adjacent.type === MAP.CAVERN && !visitedSquares.has(getKey(adjacent)))
+                .map(getKey);
+        const availables = new Set(availablePositions);
+
+        const isAvailable = (x, y) => availables.has(getKey({x, y}));
+        
+        if (j < y && isAvailable(i, j+1)) j++;
+        else if (j > y && isAvailable(i, j-1)) j--;
+        else if (i < x && isAvailable(i+1, j)) i++;
+        else if (i > x && isAvailable(i-1, j)) i--;
+        else {
+            target = path.pop();
+
+            if (!target) return [];
+        }
+        
+        target = dungeon[i][j];
+        path.push(target);
+        visitedSquares.add(getKey(target));
+    }
+
+    return path;
+};
+
+const step = (unit, nearest) => {
+    nearest.square.type = unit.type;
+    nearest.square.enemyOf = unit.enemyOf;
+    nearest.square.hp = unit.hp;
+    nearest.square.id = unit.id;
+
+    unit.type = MAP.CAVERN;
+    delete unit.enemyOf;
+    delete unit.hp;
+    delete unit.id;
+};
+
+const move = (unit, enemies, openCaverns, dungeon) => {  
+    const nearests = [];  
+    for (let enemy of enemies) {
+        const adjacents = getAdjacents(dungeon, enemy).filter(square => square.type === MAP.CAVERN);
+        const reachables = adjacents
+            .map(adjacent => {
+                const path = getMinimumPath(adjacent, unit, dungeon);
+                return {
+                    square: adjacent,
+                    path,
+                    distance: path.length
+                };
+            })
+            .filter(adjacent => adjacent.distance > 0);
+
+        if (reachables.length > 0) {
+            const nearest = reachables
+                .reduce((nearest, adjacent) => nearest.distance < adjacent.distance ? nearest : adjacent);
+
+            nearests.push(nearest);
+        }
+    }
+
+    if (nearests.length > 0) {
+        const nearest = nearests.reduce((nearest, adjacent) => nearest.distance < adjacent.distance ? nearest : adjacent);
+        step(unit, nearest);
+    }
+}
+
+const attack = (unit, enemiesInRange) => {
+    const minHp = enemiesInRange.reduce((min, enemy) => Math.min(min, enemy.hp), MAX_HP);
+    const weakestEnemy = enemiesInRange.filter(({hp}) => hp === minHp)[0];
+
+    weakestEnemy.hp -= AP;
+
+    if (weakestEnemy.hp <= 0) {
+        weakestEnemy.dead = true;
+        weakestEnemy.previousType = weakestEnemy.type;
+        weakestEnemy.type = MAP.CAVERN;
+        
+        return weakestEnemy;
+    }    
+}
+
+const makeRound = (dungeon, units) => {
+    const n = dungeon.length;
+    const m = dungeon[0].length;
+
+    // Sorting for the round
+    units.sort((a, b) => (a.x === b.x) ? a.y - b.y : a.x - b.x);
+
+    for (let unit of units) {
+        // Determine action
+        const { type, enemyOf } = unit;        
+
+        const adjacents = getAdjacents(dungeon, unit);
+        const enemiesInRange = adjacents.filter(square => square.type === enemyOf);
+
+        if (enemiesInRange.length > 0) {
+            const casualty = attack(unit, enemiesInRange);
+            if (casualty) {
+                const i = units.indexOf(casualty);
+                units.splice(i, 1);
+            }
+        }
+        else {
+            const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
+            const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type);
+            if (openCaverns.length > 0 && enemies.length > 0) {
+                move(unit, enemies, openCaverns, dungeon);
+            }
+        }
+
+    }
+};
+
+(async () => {
+    const lines = await readFile('test.txt');
+
+    const { dungeon, units } = readDungeon(lines);
+    makeRound(dungeon, units);
+    console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
+})();
