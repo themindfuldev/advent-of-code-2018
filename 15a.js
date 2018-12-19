@@ -102,7 +102,7 @@ const getMinimumPath = (target, unit, dungeon) => {
                 ideal = findPosition({ x: i, y: j-1 });
                 if (!ideal) greedy = findPosition({ y: j-1 });
             }
-            if (!ideal && j > y) {
+            if (!ideal && j < y) {
                 ideal = findPosition({ x: i, y: j+1 });
                 if (!ideal) greedy = findPosition({ y: j+1 });
             }
