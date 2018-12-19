@@ -29,7 +29,7 @@ class Square {
                 square: this,
                 enemyOf: ENEMIES[type],
                 hp: MAX_HP,
-                alive: true
+                isAlive: true
             }
         }
     }
@@ -91,8 +91,6 @@ const getMinimumPath = (target, unit, dungeon) => {
             let i = target.x;
             let j = target.y;
 
-            
-        
             let ideal, greedy;
             if (i > x) {
                 ideal = findPosition({ x: i-1, y: j });
@@ -172,7 +170,7 @@ const attack = enemiesInRange => {
     weakestEnemy.hp -= AP;
 
     if (weakestEnemy.hp <= 0) {
-        weakestEnemy.alive = false;
+        weakestEnemy.isAlive = false;
         weakestEnemy.square.type = MAP.CAVERN;
         delete weakestEnemy.square.unit;
         delete weakestEnemy.square;
@@ -197,41 +195,51 @@ const makeRound = (dungeon, units) => {
     const n = dungeon.length;
     const m = dungeon[0].length;
 
+    let hasCombatEndedEarly = false;
     for (let unit of units) {
-        // Determine action
-        if (unit.alive) {
-            let adjacents = getAdjacents(dungeon, unit.square);
-            let enemiesInRange = getEnemiesInRange(adjacents, unit);
+        if (unit.isAlive) {
+            // If no enemies, combat ends early
+            const hasEnemies = units.some(enemy => enemy.type === unit.enemyOf && enemy.isAlive);
+            if (hasEnemies) {
+                // Determine action
+                let adjacents = getAdjacents(dungeon, unit.square);
+                let enemiesInRange = getEnemiesInRange(adjacents, unit);
 
-            if (enemiesInRange.length === 0) {
-                // Moves and attacks
-                const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
-                const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type && nextUnit.alive);
-                if (openCaverns.length > 0 && enemies.length > 0) {
-                    // Moves
-                    move(unit, units, enemies, openCaverns, dungeon);
-                    
-                    // Attacks
-                    adjacents = getAdjacents(dungeon, unit.square);
-                    enemiesInRange = getEnemiesInRange(adjacents, unit);
-                    if (enemiesInRange.length > 0) {
-                        attack(enemiesInRange);
+                if (enemiesInRange.length === 0) {
+                    // Moves and attacks
+                    const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
+                    const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type && nextUnit.isAlive);
+                    if (openCaverns.length > 0 && enemies.length > 0) {
+                        // Moves
+                        move(unit, units, enemies, openCaverns, dungeon);
+                        
+                        // Attacks
+                        adjacents = getAdjacents(dungeon, unit.square);
+                        enemiesInRange = getEnemiesInRange(adjacents, unit);
+                        if (enemiesInRange.length > 0) {
+                            attack(enemiesInRange);
+                        }
                     }
+                }
+                else {
+                    // Attacks
+                    attack(enemiesInRange);
                 }
             }
             else {
-                // Attacks
-                attack(enemiesInRange);
+                hasCombatEndedEarly = true;
             }
-        }        
+        }
     }
     
-    while (units.some(unit => !unit.alive)) {
-        const nextDead = units.find(unit => !unit.alive);
+    while (units.some(unit => !unit.isAlive)) {
+        const nextDead = units.find(unit => !unit.isAlive);
         units.splice(units.indexOf(nextDead), 1);
     }
 
     sort(units);
+
+    return hasCombatEndedEarly;
 };
 
 (async () => {
@@ -242,13 +250,16 @@ const makeRound = (dungeon, units) => {
     let goblins, elves;
     let rounds = 0;
     do {
-        rounds++;
-        makeRound(dungeon, units);
+        const hasCombatEndedEarly = makeRound(dungeon, units);
+        if (!hasCombatEndedEarly) rounds++;
+
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
-        elves = units.filter(unit => unit.type === MAP.ELF).length;
+        elves = units.filter(unit => unit.type === MAP.ELF).length;        
+
         console.log(`round ${rounds}:`);
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
         console.log(units.map(u => `${u.type}(${u.id}): ${u.hp}`));
+        
     } while (goblins > 0 && elves > 0);
 
     const remainingHp = units.reduce((total, unit) => total += unit.hp, 0);
