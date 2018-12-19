@@ -149,7 +149,7 @@ const move = (unit, units, enemies, openCaverns, dungeon) => {
     }
 }
 
-const attack = (units, enemiesInRange) => {
+const attack = enemiesInRange => {
     const minHp = enemiesInRange.reduce((min, enemy) => Math.min(min, enemy.hp), MAX_HP);
     const weakestEnemy = enemiesInRange.filter(({hp}) => hp === minHp)[0];
 
@@ -160,15 +160,12 @@ const attack = (units, enemiesInRange) => {
         weakestEnemy.square.type = MAP.CAVERN;
         delete weakestEnemy.square.unit;
         delete weakestEnemy.square;
-        
-        const i = units.indexOf(weakestEnemy);
-        units.splice(i, 1);
     }    
 }
 
 const getEnemiesInRange = (adjacents, { enemyOf }) => {
     return adjacents
-        .filter(square => square.type === enemyOf)
+        .filter(square => square.type === enemyOf && square.unit)
         .map(square => square.unit);
 };
 
@@ -192,7 +189,7 @@ const makeRound = (dungeon, units) => {
             if (enemiesInRange.length === 0) {
                 // Moves and attacks
                 const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
-                const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type);
+                const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type && nextUnit.alive);
                 if (openCaverns.length > 0 && enemies.length > 0) {
                     // Moves
                     move(unit, units, enemies, openCaverns, dungeon);
@@ -201,16 +198,20 @@ const makeRound = (dungeon, units) => {
                     adjacents = getAdjacents(dungeon, unit.square);
                     enemiesInRange = getEnemiesInRange(adjacents, unit);
                     if (enemiesInRange.length > 0) {
-                        attack(units, enemiesInRange);
+                        attack(enemiesInRange);
                     }
                 }
             }
             else {
                 // Attacks
-                attack(units, enemiesInRange);
+                attack(enemiesInRange);
             }
-        }
-
+        }        
+    }
+    
+    while (units.some(unit => !unit.alive)) {
+        const nextDead = units.find(unit => !unit.alive);
+        units.splice(units.indexOf(nextDead), 1);
     }
 };
 
@@ -222,12 +223,17 @@ const makeRound = (dungeon, units) => {
     let goblins, elves;
     let rounds = 0;
     do {
-        makeRound(dungeon, units);
         rounds++;
+        makeRound(dungeon, units);
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
         elves = units.filter(unit => unit.type === MAP.ELF).length;
         console.log(`round ${rounds}:`);
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
+        units.sort((a, b) => {
+            const sA = a.square;
+            const sB = b.square;
+            return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
+        });
         console.log(units.map(u => `${u.type}(${u.id}): ${u.hp}`));
     } while (goblins > 0 && elves > 0);
 
