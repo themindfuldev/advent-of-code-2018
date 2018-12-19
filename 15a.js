@@ -79,41 +79,46 @@ const getMinimumPath = (target, unit, dungeon) => {
     const { x, y } = unit.square;
     const unitAdjacents = getAdjacents(dungeon, unit.square).filter(adjacent => adjacent.type === MAP.CAVERN);
     
-    let i = target.x;
-    let j = target.y;
     while (!unitAdjacents.includes(target)) {
         const targetAdjacents = getAdjacents(dungeon, target);
-
         const availablePositions = 
-            targetAdjacents
-                .filter(adjacent => adjacent.type === MAP.CAVERN && !visitedSquares.has(getKey(adjacent)))
-                .map(getKey);
-        const availables = new Set(availablePositions);
-        const isAvailable = (x, y) => availables.has(getKey({x, y}));
+            targetAdjacents.filter(adjacent => adjacent.type === MAP.CAVERN && !visitedSquares.has(getKey(adjacent)));
+
+        const findPosition = ({x, y}) => availablePositions
+            .find(p => ( x !== undefined ? p.x === x : true ) && ( y !== undefined ? p.y === y : true ));
+
+        if (availablePositions.length > 0) {
+            let i = target.x;
+            let j = target.y;
+
+            
         
-        let hasMoved = true;
-        // Try ideal positions
-        if (i > x && isAvailable(i-1, j)) i--;
-        else if (j > y && isAvailable(i, j-1)) j--;
-        else if (j < y && isAvailable(i, j+1)) j++;
-        else if (i < x && isAvailable(i+1, j)) i++;
-        else if (availablePositions.length > 0) {
-            const [ greedyX, greedyY] = availablePositions[0].split(',');
-            i = +greedyX;
-            j = +greedyY;
-        } 
-        else hasMoved = false;
-        
-        if (hasMoved) {
-            target = dungeon[i][j];
+            let ideal, greedy;
+            if (i > x) {
+                ideal = findPosition({ x: i-1, y: j });
+                if (!ideal) greedy = findPosition({ x: i-1 });
+            }
+            if (!ideal && j > y) {
+                ideal = findPosition({ x: i, y: j-1 });
+                if (!ideal) greedy = findPosition({ y: j-1 });
+            }
+            if (!ideal && j > y) {
+                ideal = findPosition({ x: i, y: j+1 });
+                if (!ideal) greedy = findPosition({ y: j+1 });
+            }
+            if (!ideal && i < x) {
+                ideal = findPosition({ x: i+1, y: j });
+                if (!ideal) greedy = findPosition({ x: i+1 });
+            }
+            if (!ideal) greedy = availablePositions[0];
+
+            target = ideal || greedy;
             path.push(target);
             visitedSquares.add(getKey(target));
         }
         else {
             target = path.pop();
             if (!target) return [];
-            i = target.x;
-            j = target.y;
         }
     }
 
