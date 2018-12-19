@@ -42,7 +42,8 @@ const readDungeon = lines => {
     
     const units = [];
     for (let i = 0; i < n; i++) {
-        const m = lines[i].indexOf(' ') || lines[i].length;
+        let m = lines[i].indexOf(' ');
+        m = m === -1 ? lines[i].length : m;
         for (let j = 0; j < m; j++) {
             const square = dungeon[i][j] = new Square({x: i, y: j, type: lines[i][j]});
             if (square.unit) {
@@ -91,6 +92,7 @@ const getMinimumPath = (target, unit, dungeon) => {
         const isAvailable = (x, y) => availables.has(getKey({x, y}));
         
         let hasMoved = true;
+        // Try ideal positions
         if (i > x && isAvailable(i-1, j)) i--;
         else if (j > y && isAvailable(i, j-1)) j--;
         else if (j < y && isAvailable(i, j+1)) j++;
@@ -110,6 +112,8 @@ const getMinimumPath = (target, unit, dungeon) => {
         else {
             target = path.pop();
             if (!target) return [];
+            i = target.x;
+            j = target.y;
         }
     }
 
