@@ -28,7 +28,8 @@ class Square {
                 type,
                 square: this,
                 enemyOf: ENEMIES[type],
-                hp: MAX_HP
+                hp: MAX_HP,
+                alive: true
             }
         }
     }
@@ -110,7 +111,7 @@ const getMinimumPath = (target, unit, dungeon) => {
 
 const step = (unit, nearest) => {
     const oldSquare = unit.square;
-    oldSquare.unit = undefined;
+    delete oldSquare.unit;
     oldSquare.type = MAP.CAVERN;
 
     nearest.unit = unit;
@@ -148,20 +149,28 @@ const move = (unit, units, enemies, openCaverns, dungeon) => {
     }
 }
 
-const attack = (unit, enemiesInRange) => {
+const attack = (units, enemiesInRange) => {
     const minHp = enemiesInRange.reduce((min, enemy) => Math.min(min, enemy.hp), MAX_HP);
     const weakestEnemy = enemiesInRange.filter(({hp}) => hp === minHp)[0];
 
     weakestEnemy.hp -= AP;
 
     if (weakestEnemy.hp <= 0) {
-        weakestEnemy.dead = true;
-        weakestEnemy.previousType = weakestEnemy.type;
-        weakestEnemy.type = MAP.CAVERN;
+        weakestEnemy.alive = false;
+        weakestEnemy.square.type = MAP.CAVERN;
+        delete weakestEnemy.square.unit;
+        delete weakestEnemy.square;
         
-        return weakestEnemy;
+        const i = units.indexOf(weakestEnemy);
+        units.splice(i, 1);
     }    
 }
+
+const getEnemiesInRange = (adjacents, { enemyOf }) => {
+    return adjacents
+        .filter(square => square.type === enemyOf)
+        .map(square => square.unit);
+};
 
 const makeRound = (dungeon, units) => {
     const n = dungeon.length;
@@ -176,25 +185,29 @@ const makeRound = (dungeon, units) => {
 
     for (let unit of units) {
         // Determine action
-        const { type, enemyOf } = unit;        
+        if (unit.alive) {
+            let adjacents = getAdjacents(dungeon, unit.square);
+            let enemiesInRange = getEnemiesInRange(adjacents, unit);
 
-        const adjacents = getAdjacents(dungeon, unit.square);
-        const enemiesInRange = adjacents
-            .filter(square => square.type === enemyOf)
-            .map(square => square.unit);
-
-        if (enemiesInRange.length > 0) {
-            const casualty = attack(unit, enemiesInRange);
-            if (casualty) {
-                const i = units.indexOf(casualty);
-                units.splice(i, 1);
+            if (enemiesInRange.length === 0) {
+                // Moves and attacks
+                const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
+                const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type);
+                if (openCaverns.length > 0 && enemies.length > 0) {
+                    // Moves
+                    move(unit, units, enemies, openCaverns, dungeon);
+                    
+                    // Attacks
+                    adjacents = getAdjacents(dungeon, unit.square);
+                    enemiesInRange = getEnemiesInRange(adjacents, unit);
+                    if (enemiesInRange.length > 0) {
+                        attack(units, enemiesInRange);
+                    }
+                }
             }
-        }
-        else {
-            const openCaverns = adjacents.filter(square => square.type === MAP.CAVERN);
-            const enemies = units.filter(nextUnit => unit.enemyOf === nextUnit.type);
-            if (openCaverns.length > 0 && enemies.length > 0) {
-                move(unit, units, enemies, openCaverns, dungeon);
+            else {
+                // Attacks
+                attack(units, enemiesInRange);
             }
         }
 
@@ -208,14 +221,15 @@ const makeRound = (dungeon, units) => {
 
     let goblins, elves;
     let rounds = 0;
-    //do {
+    do {
         makeRound(dungeon, units);
         rounds++;
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
         elves = units.filter(unit => unit.type === MAP.ELF).length;
+        console.log(`round ${rounds}:`);
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
-        console.log(units.map(u => `${u.id}: ${u.hp}`));
-    //} while (goblins > 0 && elves > 0);
+        console.log(units.map(u => `${u.type}(${u.id}): ${u.hp}`));
+    } while (goblins > 0 && elves > 0);
 
     const remainingHp = units.reduce((total, unit) => total += unit.hp, 0);
     const outcome = rounds * remainingHp;
