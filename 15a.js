@@ -37,12 +37,12 @@ class Square {
 
 const readDungeon = lines => {
     const n = lines.length;
-    const m = lines[0].length;
 
-    const dungeon = Array.from({ length: n }, row => Array.from({ length: m }));
+    const dungeon = Array.from({ length: n }, row => []);
     
     const units = [];
     for (let i = 0; i < n; i++) {
+        const m = lines[i].indexOf(' ') || lines[i].length;
         for (let j = 0; j < m; j++) {
             const square = dungeon[i][j] = new Square({x: i, y: j, type: lines[i][j]});
             if (square.unit) {
@@ -169,16 +169,19 @@ const getEnemiesInRange = (adjacents, { enemyOf }) => {
         .map(square => square.unit);
 };
 
-const makeRound = (dungeon, units) => {
-    const n = dungeon.length;
-    const m = dungeon[0].length;
-
-    // Sorting for the round
+const sort = units => {
     units.sort((a, b) => {
         const sA = a.square;
         const sB = b.square;
         return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
     });
+};
+
+const makeRound = (dungeon, units) => {
+    const n = dungeon.length;
+    const m = dungeon[0].length;
+
+    sort(units);
 
     for (let unit of units) {
         // Determine action
@@ -227,18 +230,15 @@ const makeRound = (dungeon, units) => {
         makeRound(dungeon, units);
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
         elves = units.filter(unit => unit.type === MAP.ELF).length;
+        sort(units);
         console.log(`round ${rounds}:`);
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
-        units.sort((a, b) => {
-            const sA = a.square;
-            const sB = b.square;
-            return (sA.x === sB.x) ? sA.y - sB.y : sA.x - sB.x;
-        });
         console.log(units.map(u => `${u.type}(${u.id}): ${u.hp}`));
     } while (goblins > 0 && elves > 0);
 
     const remainingHp = units.reduce((total, unit) => total += unit.hp, 0);
     const outcome = rounds * remainingHp;
 
+    console.log(`The ${goblins > 0 ? 'goblins': 'elves'} won!`);
     console.log(`The outcome of the combat is ${outcome}`);
 })();
