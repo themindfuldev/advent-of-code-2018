@@ -71,8 +71,10 @@ const getAdjacents = (dungeon, square) => {
 const getKey = ({ x, y }) => `${x},${y}`;
 
 const getMinimumPath = (target, unit, dungeon) => {
-    const visitedSquares = new Set();
     const path = [target];
+    const visitedSquares = new Set();
+    visitedSquares.add(getKey(target));
+
     const { x, y } = unit.square;
     const unitAdjacents = getAdjacents(dungeon, unit.square).filter(adjacent => adjacent.type === MAP.CAVERN);
     
@@ -93,6 +95,11 @@ const getMinimumPath = (target, unit, dungeon) => {
         else if (j > y && isAvailable(i, j-1)) j--;
         else if (j < y && isAvailable(i, j+1)) j++;
         else if (i < x && isAvailable(i+1, j)) i++;
+        else if (availablePositions.length > 0) {
+            const [ greedyX, greedyY] = availablePositions[0].split(',');
+            i = +greedyX;
+            j = +greedyY;
+        } 
         else hasMoved = false;
         
         if (hasMoved) {
@@ -181,8 +188,6 @@ const makeRound = (dungeon, units) => {
     const n = dungeon.length;
     const m = dungeon[0].length;
 
-    sort(units);
-
     for (let unit of units) {
         // Determine action
         if (unit.alive) {
@@ -216,6 +221,8 @@ const makeRound = (dungeon, units) => {
         const nextDead = units.find(unit => !unit.alive);
         units.splice(units.indexOf(nextDead), 1);
     }
+
+    sort(units);
 };
 
 (async () => {
@@ -230,7 +237,6 @@ const makeRound = (dungeon, units) => {
         makeRound(dungeon, units);
         goblins = units.filter(unit => unit.type === MAP.GOBLIN).length;
         elves = units.filter(unit => unit.type === MAP.ELF).length;
-        sort(units);
         console.log(`round ${rounds}:`);
         console.log(dungeon.map(row => row.map(col => col.type).join('')).join('\n'));
         console.log(units.map(u => `${u.type}(${u.id}): ${u.hp}`));
