@@ -13,7 +13,7 @@ const ENEMIES = {
 }
 
 const MAX_HP = 200;
-const AP = 3;
+const INITIAL_AP = 3;
 
 let generator = 0;
 class Square {
@@ -29,6 +29,7 @@ class Square {
                 square: this,
                 enemyOf: ENEMIES[type],
                 hp: MAX_HP,
+                ap: INITIAL_AP,
                 isAlive: true
             }
         }
@@ -105,14 +106,14 @@ const getMinimumDistance = (dungeon, start, end) => {
             undefined;
     }
 
-    const endDistance = Math.min(...getAdjacents(dungeon, end, MAP.CAVERN).map(getDistance)) + 1;
+    const endDistance = Math.min(...getAdjacents(dungeon, end, MAP.CAVERN).map(getDistance));
 
     return { endDistance, getDistance };
 };
 
 const getNext = (dungeon, unit, nearest) => {
     const { endDistance, getDistance } = getMinimumDistance(dungeon, nearest, unit);
-    return getAdjacents(dungeon, unit, MAP.CAVERN).find(square => getDistance(square) === endDistance - 1);
+    return getAdjacents(dungeon, unit, MAP.CAVERN).find(square => getDistance(square) === endDistance);
 };
 
 const step = (unit, nearest) => {
@@ -147,11 +148,11 @@ const move = (unit, units, enemies, openCaverns, dungeon) => {
     }
 }
 
-const attack = enemiesInRange => {
+const attack = (unit, enemiesInRange) => {
     const minHp = enemiesInRange.reduce((min, enemy) => Math.min(min, enemy.hp), MAX_HP);
     const weakestEnemy = enemiesInRange.filter(({hp}) => hp === minHp)[0];
 
-    weakestEnemy.hp -= AP;
+    weakestEnemy.hp -= unit.ap;
 
     if (weakestEnemy.hp <= 0) {
         weakestEnemy.isAlive = false;
@@ -201,13 +202,13 @@ const makeRound = (dungeon, units) => {
                         adjacents = getAdjacents(dungeon, unit.square);
                         enemiesInRange = getEnemiesInRange(adjacents, unit);
                         if (enemiesInRange.length > 0) {
-                            attack(enemiesInRange);
+                            attack(unit, enemiesInRange);
                         }
                     }
                 }
                 else {
                     // Attacks
-                    attack(enemiesInRange);
+                    attack(unit, enemiesInRange);
                 }
             }
             else {
