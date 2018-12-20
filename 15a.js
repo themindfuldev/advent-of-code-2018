@@ -2,8 +2,8 @@ const { readFile } = require('./reader');
 const {
     readDungeon,
     makeRound,
-    howManyElves,
-    howManyGoblins,
+    getGoblins,
+    getElves,
     printStats,
     getOutcome  
 } = require('./15-common');
@@ -18,8 +18,8 @@ const {
         const hasCombatEndedEarly = makeRound(dungeon, units);
         if (!hasCombatEndedEarly) rounds++;
 
-        goblins = howManyGoblins(units);
-        elves = howManyElves(units);
+        goblins = getGoblins(units).length;
+        elves = getElves(units).length;
 
         printStats(rounds, dungeon, units);
     } while (goblins > 0 && elves > 0);

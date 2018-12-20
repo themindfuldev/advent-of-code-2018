@@ -231,8 +231,8 @@ const getOutcome = (rounds, units) => {
     return rounds * remainingHp;
 };
 
-const howManyGoblins = units => units.filter(unit => unit.type === MAP.GOBLIN).length;
-const howManyElves = units => units.filter(unit => unit.type === MAP.ELF).length;
+const getGoblins = units => units.filter(unit => unit.type === MAP.GOBLIN);
+const getElves = units => units.filter(unit => unit.type === MAP.ELF);
 
 const printStats = (rounds, dungeon, units) => {
     console.log(`round ${rounds}:`);
@@ -243,8 +243,8 @@ const printStats = (rounds, dungeon, units) => {
 module.exports = {
     readDungeon,
     makeRound,
-    howManyElves,
-    howManyGoblins,
+    getGoblins,
+    getElves,
     printStats,
     getOutcome  
 };
