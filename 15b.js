@@ -8,13 +8,23 @@ const {
     getOutcome  
 } = require('./15-common');
 
+
+
 (async () => {
     const lines = await readFile('15-input.txt');
 
     const { dungeon, units } = readDungeon(lines);
 
-    let goblins, elves, rounds = 0;
-    do {
+    let initialElves = howManyElves(units);
+    let elves = initialElves;
+    let goblins = howManyGoblins(units);
+    let rounds = 0;
+    let ap = 3;
+    
+    while (elves === initialElves && goblins > 0) {
+        ap++;
+
+
         const hasCombatEndedEarly = makeRound(dungeon, units);
         if (!hasCombatEndedEarly) rounds++;
 
