@@ -232,6 +232,7 @@ const makeRound = (dungeon, units) => {
         }
     }
     
+    // Removes dead
     while (units.some(unit => !unit.isAlive)) {
         const nextDead = units.find(unit => !unit.isAlive);
         units.splice(units.indexOf(nextDead), 1);
@@ -243,7 +244,7 @@ const makeRound = (dungeon, units) => {
 };
 
 (async () => {
-    const lines = await readFile('test.txt');
+    const lines = await readFile('15-input.txt');
 
     const { dungeon, units } = readDungeon(lines);
 
