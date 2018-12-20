@@ -55,7 +55,7 @@ const readDungeon = lines => {
     return { dungeon, units };
 };
 
-const getAdjacents = (dungeon, square) => {
+const getAdjacents = (dungeon, square, type) => {
     const n = dungeon.length;
     const m = dungeon[0].length;
 
@@ -66,61 +66,53 @@ const getAdjacents = (dungeon, square) => {
     if (y < m - 1) adjacents.push(dungeon[x][y+1]);
     if (x < n - 1) adjacents.push(dungeon[x+1][y]);
 
-    return adjacents;
+    return type ? adjacents.filter(square => square.type === type) : adjacents;
 }
 
 const getKey = ({ x, y }) => `${x},${y}`;
 
-const getMinimumPath = (target, unit, dungeon) => {
-    const path = [target];
-    const visitedSquares = new Set();
-    visitedSquares.add(getKey(target));
+const getMinimumDistance = (dungeon, start, end) => {
+    const unvisitedSquares = new Set();
+    const distances = new Map();
+    const getDistance = square => distances.get(getKey(square));
 
-    const { x, y } = unit.square;
-    const unitAdjacents = getAdjacents(dungeon, unit.square).filter(adjacent => adjacent.type === MAP.CAVERN);
-    
-    while (!unitAdjacents.includes(target)) {
-        const targetAdjacents = getAdjacents(dungeon, target);
-        const availablePositions = 
-            targetAdjacents.filter(adjacent => adjacent.type === MAP.CAVERN && !visitedSquares.has(getKey(adjacent)));
-
-        const findPosition = ({x, y}) => availablePositions
-            .find(p => ( x !== undefined ? p.x === x : true ) && ( y !== undefined ? p.y === y : true ));
-
-        if (availablePositions.length > 0) {
-            let i = target.x;
-            let j = target.y;
-
-            let ideal, greedy;
-            if (i > x) {
-                ideal = findPosition({ x: i-1, y: j });
-                if (!ideal) greedy = findPosition({ x: i-1 });
+    // Setting initial infinite distances
+    const n = dungeon.length;
+    const m = dungeon[0].length;
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < m; j++) {
+            const square = dungeon[i][j];
+            if (square.type === MAP.CAVERN) {
+                distances.set(getKey(square), Number.POSITIVE_INFINITY);
+                unvisitedSquares.add(square);
             }
-            if (!ideal && j > y) {
-                ideal = findPosition({ x: i, y: j-1 });
-                if (!ideal) greedy = findPosition({ y: j-1 });
-            }
-            if (!ideal && j < y) {
-                ideal = findPosition({ x: i, y: j+1 });
-                if (!ideal) greedy = findPosition({ y: j+1 });
-            }
-            if (!ideal && i < x) {
-                ideal = findPosition({ x: i+1, y: j });
-                if (!ideal) greedy = findPosition({ x: i+1 });
-            }
-            if (!ideal) greedy = availablePositions[0];
-
-            target = ideal || greedy;
-            path.push(target);
-            visitedSquares.add(getKey(target));
-        }
-        else {
-            target = path.pop();
-            if (!target) return [];
         }
     }
+    
+    distances.set(getKey(start), 0);
+    
+    let current = start;
+    while (current) {
+        const nextDistance = getDistance(current) + 1;
+        getAdjacents(dungeon, current, MAP.CAVERN)
+            .filter(square => unvisitedSquares.has(square))
+            .forEach(square => distances.set(getKey(square), Math.min(getDistance(square), nextDistance)));
 
-    return path;
+        unvisitedSquares.delete(current);
+        
+        current = unvisitedSquares.size > 0 ?
+            [...unvisitedSquares].reduce((minimum, square) => getDistance(minimum) <= getDistance(square) ? minimum : square) :
+            undefined;
+    }
+
+    const endDistance = Math.min(...getAdjacents(dungeon, end, MAP.CAVERN).map(getDistance)) + 1;
+
+    return { endDistance, getDistance };
+};
+
+const getNext = (dungeon, unit, nearest) => {
+    const { endDistance, getDistance } = getMinimumDistance(dungeon, nearest, unit);
+    return getAdjacents(dungeon, unit, MAP.CAVERN).find(square => getDistance(square) === endDistance - 1);
 };
 
 const step = (unit, nearest) => {
@@ -134,32 +126,24 @@ const step = (unit, nearest) => {
 };
 
 const move = (unit, units, enemies, openCaverns, dungeon) => {  
-    const nearests = [];  
+    const allReachables = [];  
     for (let enemy of enemies) {
-        const adjacents = getAdjacents(dungeon, enemy.square).filter(square => square.type === MAP.CAVERN);
-        const reachables = adjacents
-            .map(adjacent => {
-                const path = getMinimumPath(adjacent, unit, dungeon);
-                return {
-                    square: adjacent,
-                    path,
-                    distance: path.length
-                };
-            })
-            .filter(adjacent => adjacent.distance > 0);
-
-        if (reachables.length > 0) {
-            const nearest = reachables.reduce((nearest, adjacent) => nearest.distance <= adjacent.distance ? nearest : adjacent);
-
-            nearests.push(nearest);
-        }
+        const adjacents = getAdjacents(dungeon, enemy.square, MAP.CAVERN);
+        const inRange = adjacents.map(square => {
+            return {
+                square,
+                distance: getMinimumDistance(dungeon, square, unit.square).endDistance
+            };
+        });
+        const reachables = inRange.filter(adjacent => adjacent.distance < Number.POSITIVE_INFINITY);
+        allReachables.push(...reachables);
     }
 
-    if (nearests.length > 0) {
-        const nearest = nearests.reduce((nearest, adjacent) => nearest.distance <= adjacent.distance ? nearest : adjacent);
-        const nextStep = nearest.path[nearest.path.length-1];
+    if (allReachables.length > 0) {
+        const nearest = allReachables.reduce((nearest, square) => nearest.distance <= square.distance ? nearest : square);
+        const next = getNext(dungeon, unit.square, nearest.square);
 
-        step(unit, nextStep);
+        step(unit, next);
     }
 }
 
