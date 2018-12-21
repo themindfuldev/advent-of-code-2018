@@ -23,13 +23,111 @@ const readSamples = lines => {
         }
     }
     return samples;
-}
+};
+
+const operations = {
+    'addr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] + registers[b]; 
+        return result; 
+    },
+    'addi': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] + b; 
+        return result; 
+    },
+    'mulr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] * registers[b]; 
+        return result; 
+    },
+    'muli': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] * b; 
+        return result; 
+    },
+    'banr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] & registers[b]; 
+        return result; 
+    },
+    'bani': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] & b; 
+        return result; 
+    },
+    'borr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] | registers[b]; 
+        return result; 
+    },
+    'bori': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] | b; 
+        return result; 
+    },
+    'setr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a]; 
+        return result; 
+    },
+    'seti': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = a; 
+        return result; 
+    },
+    'gtir': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = a > registers[b] ? 1 : 0; 
+        return result; 
+    },
+    'gtri': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] > b ? 1 : 0; 
+        return result; 
+    },
+    'gtrr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] > registers[b] ? 1 : 0; 
+        return result; 
+    },
+    'eqir': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = a === registers[b] ? 1 : 0; 
+        return result; 
+    },
+    'eqri': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] === b ? 1 : 0; 
+        return result; 
+    },
+    'eqrr': ([op, a, b, c]) => registers => { 
+        const result = [...registers];
+        result[c] = registers[a] === registers[b] ? 1 : 0;
+        return result;
+     }
+};
+
+const evaluateSamples = samples => {
+    let numberOfSamples = 0;
+
+    for (let sample of samples) {
+        const { before, instructions, after } = sample;
+
+        const opcodes = Object.values(operations)
+            .map(op => op(instructions)(before))
+            .filter(result => result.toString() === after.toString()).length;
+
+        if (opcodes >= 3) numberOfSamples += 1;
+    }
+    return numberOfSamples;
+};
 
 (async () => {
-    const lines = await readFile('test.txt');
+    const lines = await readFile('16-input.txt');
 
     const samples = readSamples(lines);
+    const numberOfSamples = evaluateSamples(samples);
 
-    console.log(samples);
-    
+    console.log(`The number of samples with three or more opcodes is ${numberOfSamples}`);    
 })();
