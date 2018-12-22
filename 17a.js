@@ -35,7 +35,7 @@ class WaterFlow {
         const next = [];
 
         // If square below is empty, flow down
-        if (!map[y+1] || map[y+1][x] === undefined) {
+        if (!map[y+1] || map[y+1][x] === MAP.SAND) {
             this.down = new WaterFlow({x, y: y+1, up: this, parent: DIRECTIONS.UP});
             if (!map[y+1]) map[y+1] = [];
             map[y+1][x] = MAP.WATER_DOWN;
@@ -43,7 +43,7 @@ class WaterFlow {
         }
         // If it came from up, then flow to the sides
         else if (parent === DIRECTIONS.UP) {
-            if (map[y][x-1] === undefined) {
+            if (map[y][x-1] === MAP.SAND) {
                 this.left = new WaterFlow({x: x-1, y, right: this, parent: DIRECTIONS.RIGHT});
                 map[y][x-1] = MAP.WATER_DOWN;
                 next.push(this.left);
@@ -52,7 +52,7 @@ class WaterFlow {
                 this.returnedFromLeft = true;                    
             }
 
-            if (map[y][x+1] === undefined) {
+            if (map[y][x+1] === MAP.SAND) {
                 this.right = new WaterFlow({x: x+1, y, left: this, parent: DIRECTIONS.LEFT});
                 map[y][x+1] = MAP.WATER_DOWN;
                 next.push(this.right);
@@ -71,7 +71,7 @@ class WaterFlow {
         // If it came from right, keep going left
         else if (parent === DIRECTIONS.RIGHT) {
             // If square to the left is empty, flow left
-            if (map[y][x-1] === undefined) {
+            if (map[y][x-1] === MAP.SAND) {
                 this.left = new WaterFlow({x: x-1, y, right: this, parent: DIRECTIONS.RIGHT});
                 map[y][x-1] = MAP.WATER_DOWN;
                 next.push(this.left);
@@ -109,7 +109,7 @@ class WaterFlow {
         // If it came from left, keep going right
         else if (parent === DIRECTIONS.LEFT) {
             // If square to the right is empty, flow right
-            if (map[y][x+1] === undefined) {
+            if (map[y][x+1] === MAP.SAND) {
                 this.right = new WaterFlow({x: x+1, y, left: this, parent: DIRECTIONS.LEFT});
                 map[y][x+1] = MAP.WATER_DOWN;
                 next.push(this.right);
@@ -156,6 +156,7 @@ const buildMap = lines => {
     let minX = Number.POSITIVE_INFINITY; 
     let maxX = -1;
 
+    // Marking clay squares
     for (const line of lines) {
         let match = line.match(xRegex);
         if (match) {
@@ -190,13 +191,22 @@ const buildMap = lines => {
         }
     }
 
+    // Marking spring squares
+    map[0] = [];
+    map[0][500] = MAP.SPRING;
+
+    // Marking sand squares
+    for (let i = 0; i <= maxY; i++) {
+        if (!map[i]) map[i] = [];
+        for (let j = minX-1; j <= maxX+1; j++) {
+            map[i][j] = map[i][j] || MAP.SAND;
+        }
+    }
+
     return { map, minY, maxY, minX, maxX };
 };
 
 const openTheTap = (map, minY, maxY) => {
-    map[0] = [];
-    map[0][500] = MAP.SPRING;
-
     let hasOverflown = false;    
     let waterSquare = new WaterFlow({ x: 500, y: 0 });
     const waterFlow = [];
@@ -222,25 +232,14 @@ const countWater = (map, minY, maxY, minX, maxX) => {
     return squaresCount;
 };
 
-const fillWithSand = (map, minY, maxY, minX, maxX) => {
-    for (let i = 0; i <= maxY; i++) {
-        if (!map[i]) map[i] = [];
-        for (let j = minX-1; j <= maxX+1; j++) {
-            map[i][j] = map[i][j] || MAP.SAND;
-        }
-    }
-};
-
 (async () => {
     const lines = await readFile('17-input.txt');
 
     const { map, minY, maxY, minX, maxX } = buildMap(lines);
-
+    
     openTheTap(map, minY, maxY, minX, maxX);
 
     const squaresCount = countWater(map, minY, maxY, minX, maxX);
-
-    fillWithSand(map, minY, maxY, minX, maxX);
 
     console.log(map.slice(0, maxY+1).map(row => row.join('')).join('\n'));
 
