@@ -29,119 +29,117 @@ class WaterFlow {
         this.up = up;
     }
 
-    flow(map) {
-        const { x, y, parent } = this;
+    flowDown(map, x, y) {
+        this.down = new WaterFlow({x, y: y+1, up: this, parent: DIRECTIONS.UP});
+        map[y+1][x] = MAP.WATER_DOWN;
+        return this.down;
+    }
 
+    flowToTheLeft(map) {
+        let hasReachedLeftClay = false;
+        let { x, y } = this;
+        let currentWaterFlow = this;
+        let nextSquare = map[y][x-1];
+        let nextSquareBelow = map[y+1][x-1];
+
+        while (currentWaterFlow && nextSquare !== MAP.CLAY && nextSquareBelow !== MAP.SAND) {
+            if (nextSquare === MAP.SAND) {
+                currentWaterFlow.left = new WaterFlow({x: x-1, y, right: currentWaterFlow, parent: DIRECTIONS.RIGHT});
+            }
+            currentWaterFlow = currentWaterFlow.left;
+            
+            map[y][x-1] = MAP.WATER_DOWN;
+            x--;
+            nextSquare = map[y][x-1];
+            nextSquareBelow = map[y+1][x-1];
+        }
+        if (nextSquare === MAP.CLAY) {
+            hasReachedLeftClay = true;
+        }
+        else if (currentWaterFlow) {
+            currentWaterFlow.left = new WaterFlow({x: x-1, y, right: currentWaterFlow, parent: DIRECTIONS.RIGHT});
+            currentWaterFlow = currentWaterFlow.left;
+            map[y][x-1] = MAP.WATER_DOWN;
+        }
+
+        return { hasReachedLeftClay, leftmostWaterFlow: currentWaterFlow };
+    }
+
+    flowToTheRight(map) {
+        let hasReachedRightClay = false;
+        let { x, y } = this;
+        let currentWaterFlow = this;
+        let nextSquare = map[y][x+1];
+        let nextSquareBelow = map[y+1][x+1];
+
+        while (currentWaterFlow && nextSquare !== MAP.CLAY && nextSquareBelow !== MAP.SAND) {
+            if (nextSquare === MAP.SAND) {
+                currentWaterFlow.right = new WaterFlow({x: x+1, y, left: currentWaterFlow, parent: DIRECTIONS.LEFT});
+            }
+            currentWaterFlow = currentWaterFlow.right;
+            
+            map[y][x+1] = MAP.WATER_DOWN;
+            x++;
+            nextSquare = map[y][x+1];
+            nextSquareBelow = map[y+1][x+1]
+        }
+        if (nextSquare === MAP.CLAY) {
+            hasReachedRightClay = true;
+        }
+        else if (currentWaterFlow) {            
+            currentWaterFlow.right = new WaterFlow({x: x+1, y, left: currentWaterFlow, parent: DIRECTIONS.LEFT});
+            currentWaterFlow = currentWaterFlow.right;
+            map[y][x+1] = MAP.WATER_DOWN;
+        }
+
+        return { hasReachedRightClay, rightmostWaterFlow: currentWaterFlow };
+    }
+
+    markWaterResting(map, leftmostWaterFlow, rightmostWaterFlow) {
+        let {x, y} = leftmostWaterFlow;
+        let maxX = rightmostWaterFlow.x;
+        for (let i = x; i <= maxX; i++) {
+            map[y][i] = MAP.WATER_RESTING;
+        }
+    }
+
+    findUpstream(leftmostWaterFlow) {
+        let square = leftmostWaterFlow;
+        while (square.right && square.parent !== DIRECTIONS.UP) {
+            square = square.right;
+        }
+
+        return square[square.parent];
+    }
+
+    flow(map) {        
         const next = [];
-
+        
+        const { x, y, parent } = this;
+        
         // If square below is empty, flow down
-        if (!map[y+1] || map[y+1][x] === MAP.SAND) {
-            this.down = new WaterFlow({x, y: y+1, up: this, parent: DIRECTIONS.UP});
-            if (!map[y+1]) map[y+1] = [];
-            map[y+1][x] = MAP.WATER_DOWN;
-            next.push(this.down);
+        if (map[y+1][x] === MAP.SAND) {
+            next.push(this.flowDown(map, x, y));
         }
-        // If it came from up, then flow to the sides
-        else if (parent === DIRECTIONS.UP) {
-            if (map[y][x-1] === MAP.SAND) {
-                this.left = new WaterFlow({x: x-1, y, right: this, parent: DIRECTIONS.RIGHT});
-                map[y][x-1] = MAP.WATER_DOWN;
-                next.push(this.left);
-            }
-            else {
-                this.returnedFromLeft = true;                    
+        // If it came from its parent, then flow to the sides
+        else {
+            // Flow to the left
+            const { leftmostWaterFlow, hasReachedLeftClay } = this.flowToTheLeft(map);
+            if (!hasReachedLeftClay) {
+                next.push(leftmostWaterFlow);
             }
 
-            if (map[y][x+1] === MAP.SAND) {
-                this.right = new WaterFlow({x: x+1, y, left: this, parent: DIRECTIONS.LEFT});
-                map[y][x+1] = MAP.WATER_DOWN;
-                next.push(this.right);
-            }
-            else {
-                this.returnedFromRight = true;
+            // Flow to the right
+            const { rightmostWaterFlow, hasReachedRightClay } = this.flowToTheRight(map);
+            if (!hasReachedRightClay) {
+                next.push(rightmostWaterFlow);
             }
 
-            // If trapped on both sides, return up immediately
-            if (this.returnedFromLeft && this.returnedFromRight && !this.returnedUp) {
-                this.returnedUp = true;
-                map[this.y][this.x] = MAP.WATER_RESTING;
-                next.push(this[this.parent]);
-            }
-        }
-        // If it came from right, keep going left
-        else if (parent === DIRECTIONS.RIGHT) {
-            // If square to the left is empty, flow left
-            if (map[y][x-1] === MAP.SAND) {
-                this.left = new WaterFlow({x: x-1, y, right: this, parent: DIRECTIONS.RIGHT});
-                map[y][x-1] = MAP.WATER_DOWN;
-                next.push(this.left);
-            }
-            // If square to the left is clay, go back until up
-            else if ([MAP.CLAY, MAP.WATER_DOWN].includes(map[y][x-1])) {
-                let square = this;                
-                const squaresToBecomeResting = [];
-                while (square.parent !== DIRECTIONS.UP) {
-                    square.returning = true;
-                    squaresToBecomeResting.push(square);
-                    square = square[square.parent];
-                }
-
-                square.returnedFromLeft = true;
-                if (square.squaresToBecomeResting) {
-                    squaresToBecomeResting.push(...square.squaresToBecomeResting);
-                }
-                else {
-                    square.squaresToBecomeResting = squaresToBecomeResting;
-                }
-                
-                if (square.returnedFromRight && !square.returnedUp) {
-                    square.returnedUp = true;
-                    squaresToBecomeResting.push(square);
-                    
-                    for (const {x, y} of squaresToBecomeResting) {
-                        map[y][x] = MAP.WATER_RESTING;
-                    }
-
-                    next.push(square[square.parent]);
-                }
-            }
-        }
-        // If it came from left, keep going right
-        else if (parent === DIRECTIONS.LEFT) {
-            // If square to the right is empty, flow right
-            if (map[y][x+1] === MAP.SAND) {
-                this.right = new WaterFlow({x: x+1, y, left: this, parent: DIRECTIONS.LEFT});
-                map[y][x+1] = MAP.WATER_DOWN;
-                next.push(this.right);
-            }
-            // If square to the right is clay, go back until up
-            else if ([MAP.CLAY, MAP.WATER_DOWN].includes(map[y][x+1])) {
-                let square = this;
-                const squaresToBecomeResting = [];
-                while (square.parent !== DIRECTIONS.UP) {
-                    square.returning = true;
-                    squaresToBecomeResting.push(square);
-                    square = square[square.parent];
-                } 
-
-                square.returnedFromRight = true;
-                if (square.squaresToBecomeResting) {
-                    squaresToBecomeResting.push(...square.squaresToBecomeResting);
-                }
-                else {
-                    square.squaresToBecomeResting = squaresToBecomeResting;
-                }
-
-                if (square.returnedFromLeft && !square.returnedUp) {
-                    square.returnedUp = true;
-                    squaresToBecomeResting.push(square);
-
-                    for (const {x, y} of squaresToBecomeResting) {
-                        map[y][x] = MAP.WATER_RESTING;
-                    }
-                    
-                    next.push(square[square.parent]);
-                }
+            // If trapped on both sides, return up
+            if (hasReachedLeftClay && hasReachedRightClay) {
+                this.markWaterResting(map, leftmostWaterFlow, rightmostWaterFlow);
+                const upstream = this.findUpstream(leftmostWaterFlow, rightmostWaterFlow);
+                next.push(upstream);
             }
         }
 
@@ -196,7 +194,7 @@ const buildMap = lines => {
     map[0][500] = MAP.SPRING;
 
     // Marking sand squares
-    for (let i = 0; i <= maxY; i++) {
+    for (let i = 0; i <= maxY+1; i++) {
         if (!map[i]) map[i] = [];
         for (let j = minX-1; j <= maxX+1; j++) {
             map[i][j] = map[i][j] || MAP.SAND;
