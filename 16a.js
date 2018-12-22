@@ -1,6 +1,6 @@
 const { readFile } = require('./reader');
 const {
-    readSamples,
+    readInput,
     operations
 } = require('./16-common');
 
@@ -22,7 +22,7 @@ const evaluateSamples = samples => {
 (async () => {
     const lines = await readFile('16-input.txt');
 
-    const samples = readSamples(lines);
+    const { samples } = readInput(lines);
     const numberOfSamples = evaluateSamples(samples);
 
     console.log(`The number of samples with three or more opcodes is ${numberOfSamples}`);    

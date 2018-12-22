@@ -2,14 +2,15 @@ const beforeRegex = /^Before: \[(?<b0>\d), (?<b1>\d), (?<b2>\d), (?<b3>\d)\]$/;
 const instructionRegex = /^(?<op>\d+) (?<a>\d) (?<b>\d) (?<c>\d)$/;
 const afterRegex = /^After:  \[(?<a0>\d), (?<a1>\d), (?<a2>\d), (?<a3>\d)\]$/;
 
-const readSamples = lines => {
+const readInput = lines => {
     const samples = [];
+    const program = [];
     const n = lines.length;
     for (let i = 0; i < n; i++) {
         const line = lines[i];
-        const match = line.match(beforeRegex);
-        if (match) {
-            const { b0, b1, b2, b3 } = match.groups;
+        const sampleMatch = line.match(beforeRegex);
+        if (sampleMatch) {
+            const { b0, b1, b2, b3 } = sampleMatch.groups;
             const { op, a, b, c } = lines[i+1].match(instructionRegex).groups;
             const { a0, a1, a2, a3 } = lines[i+2].match(afterRegex).groups;
             samples.push({
@@ -19,8 +20,16 @@ const readSamples = lines => {
             });
             i += 2;
         }
+        else {
+            const programMatch = line.match(instructionRegex);
+            if (programMatch) {
+                const { op, a, b, c } = programMatch.groups;
+                program.push([+op, +a, +b, +c]);
+            }
+        }
+
     }
-    return samples;
+    return { samples, program };
 };
 
 const operations = {
@@ -107,6 +116,6 @@ const operations = {
 };
 
 module.exports = {
-    readSamples,
+    readInput,
     operations
 };
