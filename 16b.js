@@ -4,41 +4,16 @@ const {
     operations
 } = require('./16-common');
 
-const circularIterable = (array) => ({
-    array,
-    i : -1,
-    [Symbol.iterator]() {
-        return this;
-    },
-    next() {
-        if (this.array.length > 0) {
-            this.i = (this.i + 1) % this.array.length;
-            return { 
-                value: this.array[this.i]
-            }
-        }
-        else {
-            return {
-                done: true
-            }
-        }
-    },
-    filterArray(filter) {
-        this.array = this.array.filter(filter);
-        this.i = -1;
-    }
-});
-
 const determineOpcodes = samples => {   
     const opcodes = [];
-    const circularSamples = circularIterable(samples);
 
-    const remainingOperations = { ...operations };
+    const remainingOperations = new Map(Object.entries(operations));
 
-    for (const sample of circularSamples) {
-        const { before, instructions, after } = sample;
+    let i = 0;
+    while (remainingOperations.size > 0) {
+        const { before, instructions, after } = samples[i];
 
-        const candidates = Object.entries(remainingOperations)
+        const candidates = [...remainingOperations]
             .map(([name, op]) => ({
                 name,
                 op,
@@ -51,10 +26,13 @@ const determineOpcodes = samples => {
 
             const opcode = instructions[0];
             opcodes[opcode] = op;
-            delete remainingOperations[name];
+            remainingOperations.delete(name);
 
-            circularSamples.filterArray(({ instructions }) => instructions[0] !== opcode);
+            samples = samples.filter(({ instructions }) => instructions[0] !== opcode);
+            i = 0;
         }
+
+        i = (i + 1) % samples.length;
     }
     return opcodes;
 };
