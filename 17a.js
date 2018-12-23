@@ -39,7 +39,7 @@ class WaterFlow {
             next.push(this.flowDown(map, cache, x, y));
         }
         // If it came from its parent, then flow to the sides
-        else if (map[y][x] !== MAP.WATER_RESTING) {
+        else if ([MAP.CLAY, MAP.WATER_RESTING].includes(map[y+1][x])) {
             // Flow to the left
             const { leftmostWaterFlow, hasReachedLeftClay } = this.flowToTheLeft(map, cache);
             if (!hasReachedLeftClay && leftmostWaterFlow.left) {
@@ -209,7 +209,7 @@ const buildMap = lines => {
         }
     }
 
-    return { map, minY, maxY: 250, minX, maxX };
+    return { map, minY, maxY, minX, maxX };
 };
 
 const getKey = ({x, y}) => `${x},${y}`;
