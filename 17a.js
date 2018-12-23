@@ -1,8 +1,5 @@
 const { readFile } = require('./reader');
 
-const xRegex = /^x=(?<x>\d+), y=(?<y1>\d+)..(?<y2>\d+)$/;
-const yRegex = /^y=(?<y>\d+), x=(?<x1>\d+)..(?<x2>\d+)$/;
-
 const MAP = {
     CLAY: '#',
     SAND: '.',
@@ -155,6 +152,9 @@ class WaterFlow {
 }
 
 const buildMap = lines => {
+    const xRegex = /^x=(?<x>\d+), y=(?<y1>\d+)..(?<y2>\d+)$/;
+    const yRegex = /^y=(?<y>\d+), x=(?<x1>\d+)..(?<x2>\d+)$/;
+
     const map = [];
 
     let minY = Number.POSITIVE_INFINITY; 
@@ -166,7 +166,10 @@ const buildMap = lines => {
     for (const line of lines) {
         let match = line.match(xRegex);
         if (match) {
-            const { x, y1, y2 } = match.groups;            
+            let { x, y1, y2 } = match.groups;
+            x = +x;
+            y1 = +y1;
+            y2 = +y2;
 
             for (let i = y1; i <= y2; i++) {
                 if (!map[i]) map[i] = [];
@@ -181,13 +184,15 @@ const buildMap = lines => {
         else {
             match = line.match(yRegex);
             if (match) {
-                const { y, x1, x2 } = match.groups;
+                let { y, x1, x2 } = match.groups;
+                y = +y;
+                x1 = +x1;
+                x2 = +x2;
                 
                 if (!map[y]) map[y] = [];
 
                 for (let i = x1; i <= x2; i++) {
                     map[y][i] = MAP.CLAY;
-                
                 }
                 minY = Math.min(minY, y);
                 maxY = Math.max(maxY, y);
@@ -238,11 +243,9 @@ const openTheTap = (map, minY, maxY) => {
 const countWater = (map, minY, maxY, minX, maxX) => {
     let squaresCount = 0;
     for (let i = minY; i <= maxY; i++) {
-        if (map[i]) {
-            for (let j = minX-1; j <= maxX+1; j++) {
-                if ([MAP.WATER_DOWN, MAP.WATER_RESTING].includes(map[i][j])) {
-                    squaresCount++;
-                }
+        for (let j = minX; j <= maxX; j++) {
+            if ([MAP.WATER_DOWN, MAP.WATER_RESTING].includes(map[i][j])) {
+                squaresCount++;
             }
         }
     }
@@ -252,13 +255,11 @@ const countWater = (map, minY, maxY, minX, maxX) => {
 (async () => {
     const lines = await readFile('17-input.txt');
 
-    const { map, minY, maxY, minX, maxX } = buildMap(lines);
-    
+    const { map, minY, maxY, minX, maxX } = buildMap(lines);    
     openTheTap(map, minY, maxY, minX, maxX);
-
-    const squaresCount = countWater(map, minY, maxY, minX, maxX);
 
     console.log(map.slice(0, maxY+1).map((row, i) => `${i.toString().padStart(4)}:${row.join('')}`).join('\n'));
 
+    const squaresCount = countWater(map, minY, maxY, minX, maxX);
     console.log(`The number of tiles the water can reach is ${squaresCount}.`);
 })();
