@@ -258,7 +258,7 @@ const countWater = (map, minY, maxY, minX, maxX) => {
 
     const squaresCount = countWater(map, minY, maxY, minX, maxX);
 
-    console.log(map.slice(0, maxY+1).map(row => row.join('')).join('\n'));
+    console.log(map.slice(0, maxY+1).map((row, i) => `${(i+1).toString().padStart(4)}:${row.join('')}`).join('\n'));
 
     console.log(`The number of tiles the water can reach is ${squaresCount}.`);
 })();
