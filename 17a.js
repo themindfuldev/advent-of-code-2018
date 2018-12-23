@@ -30,16 +30,16 @@ class WaterFlow {
     }
 
     flow(map, cache) {        
-        const next = [];
-        
+        const next = [];        
         const { x, y, parent } = this;
-        
+        const squareBelow = map[y+1][x];
+
         // If square below is empty, flow down
-        if (map[y+1][x] === MAP.SAND) {
+        if (squareBelow === MAP.SAND) {
             next.push(this.flowDown(map, cache, x, y));
         }
         // If it came from its parent, then flow to the sides
-        else if ([MAP.CLAY, MAP.WATER_RESTING].includes(map[y+1][x])) {
+        else if ([MAP.CLAY, MAP.WATER_RESTING].includes(squareBelow)) {
             // Flow to the left
             const { leftmostWaterFlow, hasReachedLeftClay } = this.flowToTheLeft(map, cache);
             if (!hasReachedLeftClay && leftmostWaterFlow.left) {
@@ -226,15 +226,13 @@ const newWaterFlow = (args, cache) => {
 
 const openTheTap = (map, minY, maxY) => {
     let hasOverflown = false;    
-    let waterSquare = new WaterFlow({ x: 500, y: 0 });
     const cache = new Map();
-    const waterFlow = [];    
+    const waterFlow = [new WaterFlow({ x: 500, y: 0 })];    
     do {
+        const waterSquare = waterFlow.shift();
         const newFlow = waterSquare.flow(map, cache);
-        waterFlow.push(...newFlow);
-        
-        waterSquare = waterFlow.shift();
-    } while (waterSquare && waterSquare.y <= maxY);
+        waterFlow.push(...newFlow.filter(flow => flow.y <= maxY));
+    } while (waterFlow.length > 0);
 };
 
 const countWater = (map, minY, maxY, minX, maxX) => {
