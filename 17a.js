@@ -217,6 +217,8 @@ const buildMap = lines => {
             }
         }
     }
+    minX--;
+    maxX++;
 
     // Marking spring squares
     map[0] = [];
@@ -274,6 +276,7 @@ const countWater = (map, minY, maxY, minX, maxX) => {
     const { map, minY, maxY, minX, maxX } = buildMap(lines);    
     openTheTap(map, minY, maxY, minX, maxX);
 
+    console.log(`{ minX: ${minX}, maxX: ${maxX}, minY: ${minY}, maxY: ${maxY} }`);
     console.log(map.slice(0, maxY+1).map((row, i) => `${i.toString().padStart(4)}:${row.join('')}`).join('\n'));
 
     const squaresCount = countWater(map, minY, maxY, minX, maxX);
