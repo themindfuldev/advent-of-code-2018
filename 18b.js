@@ -3,22 +3,39 @@ const { readFile } = require('./reader');
 const {
     MAP,
     tick,
-    count
+    serialize,
+    printSolution
 } = require('./18-common');
 
 (async () => {
-    let outskirts = await readFile('18-input.txt');
-
-    for (let i = 0; i < 1000000000; i++) {
-        i % 1000 === 0 && console.log(`Minute ${i}...`);
-        outskirts = tick(outskirts);
-    }
+    let outskirts = (await readFile('18-input.txt')).map(row => row.split(''));
     
-    console.log(outskirts.map(row => row.join('')).join('\n'));
+    const previousStates = new Map();
+    let elapsedMinutes = 0;
+    let serialized;
+    let hasDetectedLoop = false;
+    do {
+        elapsedMinutes++;
+        outskirts = tick(outskirts);
 
-    const trees = count(outskirts, MAP.TREES);
-    const lumberyards = count(outskirts, MAP.LUMBERYARD);
+        serialized = serialize(outskirts);
+        if (previousStates.has(serialized)) {
+            hasDetectedLoop = true;
+        }
+        else {
+            previousStates.set(serialized, elapsedMinutes);
+        }
+    } while (!hasDetectedLoop);
+    
+    console.log(`Loop detected at minute ${elapsedMinutes}!`);
+    
+    const firstRepetitionMinutes = previousStates.get(serialized);
+    const loopDurationMinutes = elapsedMinutes - firstRepetitionMinutes;
+    const equivalentMinute = ((1000000000 - firstRepetitionMinutes) % loopDurationMinutes) + firstRepetitionMinutes;
 
-    console.log(`The total resource value of the lumber collection area is ${trees * lumberyards}`);
+    console.log(`The minute 1000000000 is equivalent to the minute ${equivalentMinute}`);
 
+    const solution = [...previousStates.entries()].find(([state, minute]) => minute === equivalentMinute)[0];
+
+    printSolution(solution);
 })();

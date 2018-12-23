@@ -1,13 +1,12 @@
 const { readFile } = require('./reader');
 
 const {
-    MAP,
     tick,
-    count
+    printSolution
 } = require('./18-common');
 
 (async () => {
-    let outskirts = await readFile('18-input.txt');
+    let outskirts = (await readFile('18-input.txt')).map(row => row.split(''));
 
     for (let i = 0; i < 10; i++) {
         outskirts = tick(outskirts);
@@ -15,9 +14,6 @@ const {
     
     console.log(outskirts.map(row => row.join('')).join('\n'));
 
-    const trees = count(outskirts, MAP.TREES);
-    const lumberyards = count(outskirts, MAP.LUMBERYARD);
-
-    console.log(`The total resource value of the lumber collection area is ${trees * lumberyards}`);
+    printSolution(outskirts);
 
 })();

@@ -44,12 +44,22 @@ const getAdjacents = (originalMap, i, j, n) => {
         .filter(acre => acre !== undefined);
 };
 
+const serialize = map => map.map(row => row.join('')).join('');
+
+const printSolution = solution => {
+    const serializedMap = (Array.isArray(solution) ? serialize(solution) : solution).split('');
+    const trees = count(serializedMap, MAP.TREES);
+    const lumberyards = count(serializedMap, MAP.LUMBERYARD);
+    console.log(`The total resource value of the lumber collection area is ${trees * lumberyards}`);
+};
+
 const count = (map, type) => {
-    return map.reduce((total, row) => total += row.reduce((subtotal, col) => subtotal + (col === type ? 1 : 0), 0), 0);
+    return map.reduce((total, acre) => total + (acre === type ? 1 : 0), 0);
 };
 
 module.exports = {
     MAP,
     tick,
-    count
+    serialize,
+    printSolution
 };
