@@ -15,5 +15,4 @@ const {
     console.log(outskirts.map(row => row.join('')).join('\n'));
 
     printSolution(outskirts);
-
 })();
