@@ -1,7 +1,6 @@
 const { readFile } = require('./reader');
 
 class Term {
-    
     constructor() {
         this.path = [];
     }
@@ -57,13 +56,73 @@ const getTerms = (input) => {
             currentBranch.addChar(char);
         }
     }
+    currentBranch.currentTerm = null;
     return currentBranch;
 };
 
+const getKey = ({i,j}) => `${i},${j}`;
+
+const getAdjacent = (currentPath, i, j) => {
+    if (currentPath === 'N') return { i: i-1, j };
+    if (currentPath === 'W') return { i, j: j-1 };
+    if (currentPath === 'E') return { i, j: j+1 };
+    if (currentPath === 'S') return { i: i+1, j };
+}
+
+// Dijkstra DFS algorithm
+const calculateDistances = root => {
+    const distances = new Map();
+
+    const stack = [{ branch: root, termIndex: 0, pathIndex: 0, distance: 0, i: 0, j: 0 }];
+    do {
+        let { branch, termIndex, pathIndex, distance, i, j } = stack.pop();
+        let isNewBranch = false;
+        while (!isNewBranch && termIndex < branch.terms.length) {
+            const term = branch.terms[termIndex];
+
+            let currentDistance = distance;
+            let currentI = i;
+            let currentJ = j;
+            while (pathIndex < term.path.length) {
+                const path = term.path[pathIndex];
+                pathIndex++;
+                if (path instanceof Branch) {
+                    stack.push({ branch, termIndex, pathIndex, distance: currentDistance, i: currentI, j: currentJ });
+                    stack.push({ branch: path, termIndex: 0, pathIndex: 0, distance: currentDistance, i: currentI, j: currentJ });
+                    isNewBranch = true;
+                    break;
+                }
+                else {
+                    const adjacent = getAdjacent(path, currentI, currentJ);
+                    currentI = adjacent.i;
+                    currentJ = adjacent.j;
+
+                    const key = getKey(adjacent);
+                    const adjacentDistance = distances.get(key);
+                    currentDistance++;
+                    if (adjacentDistance === undefined || currentDistance < adjacentDistance) {
+                        distances.set(key, currentDistance);
+                    }
+                }
+            }
+            if (isNewBranch) break;
+            pathIndex = 0;
+            termIndex++;
+        }
+    } while (stack.length > 0);
+
+    return distances;
+};
+
+const findMaxDistance = distances => {
+    return [...distances.values()].reduce((max, distance) => Math.max(max, distance));
+}
+
 (async () => {
     const input = (await readFile('test.txt'))[0];
+    const root = getTerms(input);
+    const distances = calculateDistances(root);
+    const maxDistance = findMaxDistance(distances);
 
-    const root = getTerms(input).currentTerm;
-
-    
+    console.log(`What is the largest number of doors you would be required to pass through to reach a room is ${maxDistance}`);
 })();
