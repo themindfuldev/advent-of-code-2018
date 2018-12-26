@@ -70,18 +70,19 @@ const getAdjacent = (currentPath, i, j) => {
 }
 
 // Dijkstra DFS algorithm
-const calculateDistances = (distances, branch, termIndex = 0, pathIndex = 0, distance = 0, i = 0, j = 0) => {
+const calculateDistances = (distances, branch, distance = 0, i = 0, j = 0) => {
+    let termIndex = 0;
     while (termIndex < branch.terms.length) {
         const term = branch.terms[termIndex];
-
+        let pathIndex = 0;
+        
         let currentDistance = distance;
         let currentI = i;
         let currentJ = j;
         while (pathIndex < term.path.length) {
             const path = term.path[pathIndex];
-            pathIndex++;
             if (path instanceof Branch) {
-                calculateDistances(distances, path, 0, 0, currentDistance, currentI, currentJ);
+                calculateDistances(distances, path, currentDistance, currentI, currentJ);
             }
             else {
                 const adjacent = getAdjacent(path, currentI, currentJ);
@@ -95,8 +96,8 @@ const calculateDistances = (distances, branch, termIndex = 0, pathIndex = 0, dis
                     distances.set(key, currentDistance);
                 }
             }
+            pathIndex++;
         }
-        pathIndex = 0;
         termIndex++;
     }
 }
