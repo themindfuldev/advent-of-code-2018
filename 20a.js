@@ -70,58 +70,91 @@ const getAdjacent = (currentPath, i, j) => {
 }
 
 // Dijkstra DFS algorithm
-const calculateDistances = root => {
-    const distances = new Map();
+const calculateDistances = (distances, branch, termIndex = 0, pathIndex = 0, distance = 0, i = 0, j = 0) => {
+    while (termIndex < branch.terms.length) {
+        const term = branch.terms[termIndex];
 
-    const stack = [{ branch: root, termIndex: 0, pathIndex: 0, distance: 0, i: 0, j: 0 }];
-    do {
-        let { branch, termIndex, pathIndex, distance, i, j } = stack.pop();
-        let isNewBranch = false;
-        while (!isNewBranch && termIndex < branch.terms.length) {
-            const term = branch.terms[termIndex];
+        let currentDistance = distance;
+        let currentI = i;
+        let currentJ = j;
+        while (pathIndex < term.path.length) {
+            const path = term.path[pathIndex];
+            pathIndex++;
+            if (path instanceof Branch) {
+                calculateDistances(distances, path, 0, 0, currentDistance, currentI, currentJ);
+            }
+            else {
+                const adjacent = getAdjacent(path, currentI, currentJ);
+                currentI = adjacent.i;
+                currentJ = adjacent.j;
 
-            let currentDistance = distance;
-            let currentI = i;
-            let currentJ = j;
-            while (pathIndex < term.path.length) {
-                const path = term.path[pathIndex];
-                pathIndex++;
-                if (path instanceof Branch) {
-                    stack.push({ branch, termIndex, pathIndex, distance: currentDistance, i: currentI, j: currentJ });
-                    stack.push({ branch: path, termIndex: 0, pathIndex: 0, distance: currentDistance, i: currentI, j: currentJ });
-                    isNewBranch = true;
-                    break;
-                }
-                else {
-                    const adjacent = getAdjacent(path, currentI, currentJ);
-                    currentI = adjacent.i;
-                    currentJ = adjacent.j;
-
-                    const key = getKey(adjacent);
-                    const adjacentDistance = distances.get(key);
-                    currentDistance++;
-                    if (adjacentDistance === undefined || currentDistance < adjacentDistance) {
-                        distances.set(key, currentDistance);
-                    }
+                const key = getKey(adjacent);
+                const adjacentDistance = distances.get(key);
+                currentDistance++;
+                if (adjacentDistance === undefined || currentDistance < adjacentDistance) {
+                    distances.set(key, currentDistance);
                 }
             }
-            if (isNewBranch) break;
-            pathIndex = 0;
-            termIndex++;
         }
-    } while (stack.length > 0);
+        pathIndex = 0;
+        termIndex++;
+    }
+}
 
-    return distances;
-};
+
+// const calculateDistances = root => {
+//     const distances = new Map();
+
+//     const stack = [{ branch: root, termIndex: 0, pathIndex: 0, distance: 0, i: 0, j: 0 }];
+//     do {
+//         let { branch, termIndex, pathIndex, distance, i, j } = stack.pop();
+//         let isNewBranch = false;
+//         while (!isNewBranch && termIndex < branch.terms.length) {
+//             const term = branch.terms[termIndex];
+
+//             let currentDistance = distance;
+//             let currentI = i;
+//             let currentJ = j;
+//             while (pathIndex < term.path.length) {
+//                 const path = term.path[pathIndex];
+//                 pathIndex++;
+//                 if (path instanceof Branch) {
+//                     stack.push({ branch, termIndex, pathIndex, distance: currentDistance, i: currentI, j: currentJ });
+//                     stack.push({ branch: path, termIndex: 0, pathIndex: 0, distance: currentDistance, i: currentI, j: currentJ });
+//                     isNewBranch = true;
+//                     break;
+//                 }
+//                 else {
+//                     const adjacent = getAdjacent(path, currentI, currentJ);
+//                     currentI = adjacent.i;
+//                     currentJ = adjacent.j;
+
+//                     const key = getKey(adjacent);
+//                     const adjacentDistance = distances.get(key);
+//                     currentDistance++;
+//                     if (adjacentDistance === undefined || currentDistance < adjacentDistance) {
+//                         distances.set(key, currentDistance);
+//                     }
+//                 }
+//             }
+//             if (isNewBranch) break;
+//             pathIndex = 0;
+//             termIndex++;
+//         }
+//     } while (stack.length > 0);
+
+//     return distances;
+// };
 
 const findMaxDistance = distances => {
-    return [...distances.values()].reduce((max, distance) => Math.max(max, distance));
+    return [...distances.values()].reduce((max, distance) => Math.max(max, distance), 0);
 }
 
 (async () => {
     const input = (await readFile('test.txt'))[0];
     const root = getTerms(input);
-    const distances = calculateDistances(root);
+    const distances = new Map();
+    calculateDistances(distances, root);
     const maxDistance = findMaxDistance(distances);
 
     console.log(`What is the largest number of doors you would be required to pass through to reach a room is ${maxDistance}`);
