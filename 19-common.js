@@ -36,8 +36,13 @@ const runProgram = (ipRegister, program, registers) => {
         registers = op(instruction)(registers);
         ip = ++registers[ipRegister];
         i++;
-        i % 1000000 === 0 && console.log(`${i}, ${registers.join(',')}`);
+        if (ip === 28) {
+            console.log(`${i}: register[5] = ${registers[5]}`);
+        }
+        //i % 10000000 === 0 && console.log(`${i}, ${registers.join(',')}`);
     }
+
+    console.log(`finished with i = ${i} and registers=${registers}`);
 
     return registers;
 };
